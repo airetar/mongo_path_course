@@ -19,6 +19,10 @@ const connectDatabase = async (uri, dbName) => {
     }
 }
 
+const getClient = () => {
+    return client;
+}
+
 const closeConection = () => {
     if (client) {
         client.close();
@@ -28,5 +32,6 @@ const closeConection = () => {
 
 module.exports = {
     connectDatabase,
-    closeConection
+    closeConection,
+    getClient
 }

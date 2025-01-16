@@ -1,6 +1,7 @@
-const { connectDatabase, closeConection } = require('./mongodb-connection.plugin');
+const { connectDatabase, closeConection, getClient } = require('./mongodb-connection.plugin');
 
 module.exports = {
     connectDatabase,
-    closeConection
+    closeConection,
+    getClient
 }
