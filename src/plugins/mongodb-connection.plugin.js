@@ -2,20 +2,37 @@ const { MongoClient } = require('mongodb');
 
 let client;
 
-const connectDatabase = async (uri, dbName) => {
+const connectClient = async (uri) => {
+    try {
+        client = new MongoClient(uri);
+        await client.connect();
+        return client;
+    } catch (error) {
+        throw new Error(`Client connection has failed: ${error}`);
+    }
+}
+
+const connectDatabase = async (databases) => {
     try {
         let connection;
-        if (!client) {
-            client = new MongoClient(uri);
-            await client.connect();
-            connection = client.db(dbName);
+        if (Object.keys(databases).length) {
+            Object.keys(databases).forEach(dbkey => {
+                connection = connection
+                    ? {
+                        ...connection,
+                        [dbkey]: client.db(databases[dbkey].db)
+                    }
+                    : {
+                        [dbkey]: client.db(databases[dbkey].db)
+                    }
+            });
         } else {
-            connection = client.db(dbName);
+            connection = client.db(databases).db;
         }
-        
+
         return connection;
     } catch (error) {
-        throw new Error('Connection has failed');
+        throw new Error(`Error on connection to database(s) ${error}`);
     }
 }
 
@@ -31,6 +48,7 @@ const closeConection = () => {
 }
 
 module.exports = {
+    connectClient,
     connectDatabase,
     closeConection,
     getClient

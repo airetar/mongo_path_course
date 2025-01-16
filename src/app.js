@@ -1,5 +1,5 @@
 const { ObjectId } = require('bson');
-const { connectDatabase, closeConection, getClient } = require('./plugins');
+const { connectDatabase, closeConection, getClient, connectClient } = require('./plugins');
 require('dotenv').config();
 
 /**¨
@@ -79,7 +79,7 @@ const deletePlanet = async (collection, objectId) => {
 
 const transaction = async (closeConnectionrequired) => {
     const client = getClient();
-    const planets = client.db(dbName).collection('planets');
+    const planets = client.db(databases.planets.db).collection('planets');
 
     const session = client.startSession();
     console.log(`Start Transaction...`);
@@ -125,7 +125,16 @@ const transaction = async (closeConnectionrequired) => {
 }
 
 const uri = process.env.MONGO_URI;
-const dbName = 'sample_guides';
+const databases = {
+    planets: {
+        db: 'sample_guides',
+        collection: 'planets'
+    },
+    restaurants: {
+        db: 'sample_restaurants',
+        collection: 'restaurants'
+    },
+};
 
 /**
  * Main method
@@ -133,12 +142,15 @@ const dbName = 'sample_guides';
 
 
 const main = async () => {
-    let connection; // connection and planets must have a scope in main so that 'planets' to be able to be sent as parameter in deletePlanet method
-    let planets;
+    let dbConnections;
     try {
-        connection = await connectDatabase(uri, dbName);
+        await connectClient(uri);
+        dbConnections = await connectDatabase(databases);
         console.log(`Connection successfull`);
-        planets = await connection.collection('planets');
+        /**
+         * * Planets collection operations
+         */
+        const planets = await dbConnections[databases.planets.collection].collection('planets');
         const searchPlanets = ['Ireta', 'Cassandra', 'Bingo'];
         //updateMars(connection);
         console.log('Deleting...')
@@ -148,9 +160,25 @@ const main = async () => {
         console.log('Creating Ireta...');
         await createPlanet(planets, planetMocks.ireta);
         transaction(false);
-
         const planetsList = await planets.find({ name: { $in: searchPlanets } }).toArray();
         console.log(planetsList);
+
+        /**
+         * * Restaurant collection operations
+         */
+        const restaurants = await dbConnections[databases.restaurants.collection].collection('restaurants');
+        const restaurantslist = await restaurants.aggregate([
+            /* {
+                $match: { borough: 'Brooklyn' },
+            }, */
+            {
+                $group: { 
+                    _id: '$borough',
+                    totalRestaurants: { $count: {} } 
+                }
+            }
+        ]).toArray();
+        console.log(`Restaurants: `, restaurantslist);
     } catch (error) {
         console.log(`Connection failed ${error}`);
     } finally {
