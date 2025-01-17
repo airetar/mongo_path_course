@@ -167,7 +167,7 @@ const main = async () => {
          * * Restaurant collection operations
          */
         const restaurants = await dbConnections[databases.restaurants.collection].collection('restaurants');
-        const restaurantslist = await restaurants.aggregate([
+        const restaurantslistByCity = await restaurants.aggregate([
             /* {
                 $match: { borough: 'Brooklyn' },
             }, */
@@ -176,9 +176,36 @@ const main = async () => {
                     _id: '$borough',
                     totalRestaurants: { $count: {} } 
                 }
+            },
+            {
+                $sort: {
+                    "_id": 1
+                },
+            },
+            {
+                $out: "restaurantsByCity"
             }
         ]).toArray();
-        console.log(`Restaurants: `, restaurantslist);
+        const restaurantsGrades = await restaurants.aggregate([
+            {
+                $project: {
+                    borough: 1,
+                    cuisine: 1,
+                    gradesTotal: { $sum: "$grades.score" }
+                }
+            },
+            {
+                $set: {
+                    cuisine: { $concat: ["$cuisine", " Cuisine"] }
+                }
+            },
+            /* {
+                $count: "totalRestaurantsGrades"
+            } */
+        ]).toArray();
+        console.log(`Restaurants: `, restaurantslistByCity, restaurantsGrades);
+        const restaurantsByCityCollection = await await dbConnections[databases.restaurants.collection].collection('restaurantsByCity').find().toArray();
+        console.log(restaurantsByCityCollection);
     } catch (error) {
         console.log(`Connection failed ${error}`);
     } finally {
